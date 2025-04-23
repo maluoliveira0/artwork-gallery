@@ -14,6 +14,6 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
 app.use('/api/artworks', authMiddleware, artworkRoutes);
-app.user('/api/logs', authMiddleware, logsRoutes);
+app.use('/api/logs', authMiddleware, logsRoutes);
 
 app.listen(process.env.PORT || 5000, () => console.log('Server started'));
