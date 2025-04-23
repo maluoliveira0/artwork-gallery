@@ -23,3 +23,8 @@ A partir dele, conseguirá criar outros usuários do mesmo ou de outros perfis.
 
 1. npm install
 2. node backend/index.js
+
+### Frontend
+
+1. npm install
+2. npm run start
