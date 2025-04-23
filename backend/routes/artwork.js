@@ -4,10 +4,11 @@ const pool = require('../config/db');
 
 router.post('/', async (req, res) => {
   try { 
-    const { title, description, artist_id, status } = req.body;
+    const { title, description, artist_id, status, image_url, location, hour, price } = req.body;
+
     const artwork = await pool.query(
-      'INSERT INTO artworks (title, description, artist_id, status) VALUES ($1, $2, $3, $4) RETURNING *',
-      [title, description, artist_id, status]
+      'INSERT INTO artworks (title, description, artist_id, status, image_url, location, hour, price) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [title, description, artist_id, status, image_url, location, hour, price]
     );
     res.json(artwork.rows[0]);
   } catch (err) {
@@ -43,6 +44,26 @@ router.put('/:id/approve', async (req, res) => {
   } catch (err) {
     console.error('Error in approve artwork:', err);
     res.status(500).json({ message: 'Erro ao aprovar artwork.', err });
+  }
+});
+
+router.put('/:id/reprove', async (req, res) => {
+  const artworkId = req.params.id;
+
+  try {
+    const result = await pool.query(
+      'UPDATE artworks SET status = $1 WHERE id = $2 AND status = $3 RETURNING *',
+      ['recusado', artworkId, 'pendente']
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(400).json({ message: 'Artwork não encontrada ou já reprovada.' });
+    }
+
+    res.json({ message: 'Artwork reprovada com sucesso.', artwork: result.rows[0] });
+  } catch (err) {
+    console.error('Error in reprove artwork:', err);
+    res.status(500).json({ message: 'Erro ao reprovar artwork.', err });
   }
 });
 

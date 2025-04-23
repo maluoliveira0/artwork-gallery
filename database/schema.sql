@@ -18,6 +18,12 @@ CREATE TABLE artworks (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE artworks
+  ADD COLUMN image_url TEXT,
+  ADD COLUMN location TEXT,
+  ADD COLUMN hour TEXT,
+  ADD COLUMN price TEXT;
+
 -- Exhibitions table
 CREATE TABLE exhibitions (
   id SERIAL PRIMARY KEY,
