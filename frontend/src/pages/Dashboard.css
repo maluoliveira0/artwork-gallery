@@ -197,3 +197,15 @@
     background-color: #dc3545;
     color: white;
   }
+
+  .logs-list {
+    margin-top: 20px;
+    background: #f8f8f8;
+    padding: 15px;
+    border-radius: 8px;
+  }
+  
+  .log-entry {
+    margin-bottom: 12px;
+    font-size: 14px;
+  }

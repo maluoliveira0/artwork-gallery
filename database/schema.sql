@@ -51,6 +51,17 @@ CREATE TABLE sales (
   sold_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE logs (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER,
+  user_email VARCHAR(255),
+  action TEXT NOT NULL,
+  entity TEXT NOT NULL,
+  entity_id INTEGER,
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  details TEXT
+);
+
 -- Default admin user
 INSERT INTO users (name, email, password, role)
 VALUES (

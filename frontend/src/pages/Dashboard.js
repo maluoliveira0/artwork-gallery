@@ -11,6 +11,7 @@ function Dashboard() {
   const [showArtworkModal, setShowArtworkModal] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [logs, setLogs] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -32,7 +33,14 @@ function Dashboard() {
         const payload = JSON.parse(jsonPayload);
         setUserRole(payload.role);
         setUserId(payload.id);
-        setArtworks(payload.role === 'Artista' ? res.data.filter(a => a.artist_id === payload.id) : res.data);
+
+        if (payload.role === 'Artista') {
+          setArtworks(res.data.filter(a => a.artist_id === payload.id));
+        } else if (payload.role === 'Visitante') {
+          setArtworks(res.data.filter(a => a.status === 'aprovado'));
+        } else {
+          setArtworks(res.data);
+        }
       } catch (err) {
         if (err.response?.status === 403 || err.response?.status === 401) {
           localStorage.removeItem('token');
@@ -61,7 +69,19 @@ function Dashboard() {
 
     fetchArtworks();
     fetchUsers();
+    fetchLogs();
   }, []);
+
+  const fetchLogs = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/logs', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setLogs(res.data);
+    } catch (err) {
+      console.error('Erro ao carregar logs:', err);
+    }
+  };
 
   const handleCreateArtwork = async () => {
     try {
@@ -114,6 +134,37 @@ function Dashboard() {
     window.location.href = '/';
   };
 
+  const handleApprove = async (id) => {
+    try {
+      await axios.put(`http://localhost:5000/api/artworks/${id}/approve`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const updated = await axios.get('http://localhost:5000/api/artworks', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setArtworks(updated.data);
+      alert('Obra aprovada com sucesso!');
+    } catch (err) {
+      alert('Erro ao aprovar obra.');
+    }
+  };
+
+  const handleReprove = async (id) => {
+    try {
+      await axios.put(`http://localhost:5000/api/artworks/${id}/reprove`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const updated = await axios.get('http://localhost:5000/api/artworks', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setArtworks(updated.data);
+      alert('Obra reprovada com sucesso!');
+    } catch (err) {
+      alert('Erro ao reprovar obra.');
+    }
+  };
+
+
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
@@ -154,7 +205,13 @@ function Dashboard() {
             {art.location && <p><strong>Local:</strong> {art.location}</p>}
             {art.hour && <p><strong>Horário:</strong> {art.hour}</p>}
             {art.price && <p><strong>Preço:</strong> R$ {art.price}</p>}
-            <span className={`status ${art.status}`}>{art.status}</span>
+            {(userRole !== 'Visitante') && (<span className={`status ${art.status}`}>{art.status}</span>)}
+            {(userRole === 'Curador') && art.status === 'pendente' && (
+              <div className="artwork-actions" style={{ marginTop: '25px', display: 'flex', gap: '8px' }}>
+                <button onClick={() => handleApprove(art.id)} className="approve-button">Aprovar ✔</button>
+                <button onClick={() => handleReprove(art.id)} className="reprove-button">Reprovar ✖</button>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -208,6 +265,18 @@ function Dashboard() {
             </div>
           ))}
         </div>
+
+          <br></br>
+        <h2>Auditoria - Relatório de Logs</h2>
+          <div className="logs-list">
+            {logs.map((log) => (
+              <div key={log.id} className="log-entry">
+                <p><strong>{log.timestamp}</strong> - <em>{log.user_email || ''}</em> realizou <strong>{log.action.toUpperCase()}</strong> em <strong>{log.entity}</strong> (ID: {log.entity_id || '-'})</p>
+                {log.details && <p>{log.details}</p>}
+                <hr />
+              </div>
+            ))}
+          </div>
       </>}
     </div>
   );
