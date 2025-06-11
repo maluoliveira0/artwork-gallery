@@ -71,3 +71,18 @@ VALUES (
   'Administrador'
 )
 ON CONFLICT (email) DO NOTHING;
+
+
+
+// New version (V2)
+
+ALTER TABLE artworks ADD likes INTEGER DEFAULT 0;
+
+-- Artwork likes tracking table
+CREATE TABLE artwork_likes (
+  id SERIAL PRIMARY KEY,
+  artwork_id INTEGER REFERENCES artworks(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(artwork_id, user_id)
+);

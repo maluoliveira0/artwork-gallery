@@ -173,6 +173,52 @@
     cursor: pointer;
   }
 
+  .edit-button {
+    background-color: #17a2b8;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .edit-button:hover {
+    background-color: #138496;
+  }
+
+  .delete-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .delete-button:hover {
+    background-color: #c82333;
+  }
+
+  .delete-confirmation {
+    max-width: 400px;
+    text-align: center;
+  }
+
+  .delete-confirmation p {
+    margin: 10px 0;
+    color: #666;
+  }
+
+  .delete-confirmation .delete-button {
+    background-color: #dc3545;
+  }
+
+  .delete-confirmation .delete-button:hover {
+    background-color: #c82333;
+  }
+
   .artwork-actions {
     margin-top: 25px;
     display: flex;
@@ -208,4 +254,58 @@
   .log-entry {
     margin-bottom: 12px;
     font-size: 14px;
+  }
+
+  .like-button {
+    background-color: #e83e8c;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 16px;
+    transition: background-color 0.2s;
+  }
+
+  .like-button:hover {
+    background-color: #d63384;
+  }
+
+  .like-button:disabled {
+    background-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+  }
+
+  .like-button.liked {
+    background-color: #28a745;
+  }
+
+  .like-button.liked:hover {
+    background-color: #218838;
+  }
+
+  .likes-count {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #495057;
+  }
+
+  .likes-icon {
+    font-size: 16px;
+  }
+
+  .likes-number {
+    font-weight: 500;
   }

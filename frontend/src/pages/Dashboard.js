@@ -9,8 +9,11 @@ function Dashboard() {
   const [newArtwork, setNewArtwork] = useState({ title: '', description: '', image_url: '', location: '', hour: '', price: '' });
   const [showModal, setShowModal] = useState(false);
   const [showArtworkModal, setShowArtworkModal] = useState(false);
+  const [editingArtwork, setEditingArtwork] = useState(null);
+  const [deletingArtwork, setDeletingArtwork] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [likedArtworks, setLikedArtworks] = useState(new Set());
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
@@ -38,6 +41,20 @@ function Dashboard() {
           setArtworks(res.data.filter(a => a.artist_id === payload.id));
         } else if (payload.role === 'Visitante') {
           setArtworks(res.data.filter(a => a.status === 'aprovado'));
+          const likedSet = new Set();
+          await Promise.all(res.data.map(async (artwork) => {
+            try {
+              const likeStatus = await axios.get(`http://localhost:5000/api/artworks/${artwork.id}/like-status`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              if (likeStatus.data.hasLiked) {
+                likedSet.add(artwork.id);
+              }
+            } catch (err) {
+              console.error('Error checking like status:', err);
+            }
+          }));
+          setLikedArtworks(likedSet);
         } else {
           setArtworks(res.data);
         }
@@ -164,6 +181,78 @@ function Dashboard() {
     }
   };
 
+  const handleEditArtwork = async () => {
+    try {
+      await axios.put(`http://localhost:5000/api/artworks/${editingArtwork.id}`, {
+        ...editingArtwork,
+        artist_id: userId
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      alert('Obra atualizada com sucesso!');
+      setEditingArtwork(null);
+      const updated = await axios.get('http://localhost:5000/api/artworks', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (userRole === 'Artista') {
+        setArtworks(updated.data.filter(a => a.artist_id === userId));
+      } else if (userRole === 'Visitante') {
+        setArtworks(updated.data.filter(a => a.status === 'aprovado'));
+      } else {
+        setArtworks(updated.data);
+      }
+    } catch (err) {
+      alert('Erro ao atualizar obra.');
+    } finally {
+      setShowArtworkModal(false);
+    }
+  };
+
+  const handleDeleteArtwork = async () => {
+    try {
+      await axios.delete(`http://localhost:5000/api/artworks/${deletingArtwork.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      alert('Obra deletada com sucesso!');
+      setDeletingArtwork(null);
+      const updated = await axios.get('http://localhost:5000/api/artworks', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (userRole === 'Artista') {
+        setArtworks(updated.data.filter(a => a.artist_id === userId));
+      } else if (userRole === 'Visitante') {
+        setArtworks(updated.data.filter(a => a.status === 'aprovado'));
+      } else {
+        setArtworks(updated.data);
+      }
+    } catch (err) {
+      alert('Erro ao deletar obra.');
+    } finally {
+      setDeletingArtwork(null);
+    }
+  };
+
+  const handleLikeArtwork = async (artworkId) => {
+    try {
+      const response = await axios.post(`http://localhost:5000/api/artworks/${artworkId}/like`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      // Update the artwork in the list with the new likes count
+      setArtworks(artworks.map(art => 
+        art.id === artworkId ? response.data.artwork : art
+      ));
+      
+      // Add to liked artworks set
+      setLikedArtworks(prev => new Set([...prev, artworkId]));
+    } catch (err) {
+      if (err.response?.status === 400) {
+        alert('Você já curtiu esta obra.');
+      } else {
+        alert('Erro ao curtir obra.');
+      }
+    }
+  };
 
   return (
     <div className="dashboard-container">
@@ -181,16 +270,72 @@ function Dashboard() {
       {showArtworkModal && (
         <div className="modal-overlay">
           <div className="modal">
-            <h3>Nova Obra</h3>
-            <input placeholder="Título" value={newArtwork.title} onChange={(e) => setNewArtwork({ ...newArtwork, title: e.target.value })} />
-            <input placeholder="Descrição" value={newArtwork.description} onChange={(e) => setNewArtwork({ ...newArtwork, description: e.target.value })} />
-            <input placeholder="URL da Imagem" value={newArtwork.image_url} onChange={(e) => setNewArtwork({ ...newArtwork, image_url: e.target.value })} />
-            <input placeholder="Localização Completa" value={newArtwork.location} onChange={(e) => setNewArtwork({ ...newArtwork, location: e.target.value })} />
-            <input placeholder="Horário da Exposição" value={newArtwork.hour} onChange={(e) => setNewArtwork({ ...newArtwork, hour: e.target.value })} />
-            <input placeholder="Preço" value={newArtwork.price} onChange={(e) => setNewArtwork({ ...newArtwork, price: e.target.value })} />
+            <h3>{editingArtwork ? 'Editar Obra' : 'Nova Obra'}</h3>
+            <input 
+              placeholder="Título" 
+              value={editingArtwork ? editingArtwork.title : newArtwork.title} 
+              onChange={(e) => editingArtwork 
+                ? setEditingArtwork({ ...editingArtwork, title: e.target.value })
+                : setNewArtwork({ ...newArtwork, title: e.target.value })} 
+            />
+            <input 
+              placeholder="Descrição" 
+              value={editingArtwork ? editingArtwork.description : newArtwork.description} 
+              onChange={(e) => editingArtwork 
+                ? setEditingArtwork({ ...editingArtwork, description: e.target.value })
+                : setNewArtwork({ ...newArtwork, description: e.target.value })} 
+            />
+            <input 
+              placeholder="URL da Imagem" 
+              value={editingArtwork ? editingArtwork.image_url : newArtwork.image_url} 
+              onChange={(e) => editingArtwork 
+                ? setEditingArtwork({ ...editingArtwork, image_url: e.target.value })
+                : setNewArtwork({ ...newArtwork, image_url: e.target.value })} 
+            />
+            <input 
+              placeholder="Localização Completa" 
+              value={editingArtwork ? editingArtwork.location : newArtwork.location} 
+              onChange={(e) => editingArtwork 
+                ? setEditingArtwork({ ...editingArtwork, location: e.target.value })
+                : setNewArtwork({ ...newArtwork, location: e.target.value })} 
+            />
+            <input 
+              placeholder="Horário da Exposição" 
+              value={editingArtwork ? editingArtwork.hour : newArtwork.hour} 
+              onChange={(e) => editingArtwork 
+                ? setEditingArtwork({ ...editingArtwork, hour: e.target.value })
+                : setNewArtwork({ ...newArtwork, hour: e.target.value })} 
+            />
+            <input 
+              placeholder="Preço" 
+              value={editingArtwork ? editingArtwork.price : newArtwork.price} 
+              onChange={(e) => editingArtwork 
+                ? setEditingArtwork({ ...editingArtwork, price: e.target.value })
+                : setNewArtwork({ ...newArtwork, price: e.target.value })} 
+            />
             <div className="modal-actions">
-              <button onClick={handleCreateArtwork}>Criar</button>
-              <button onClick={() => setShowArtworkModal(false)} className="cancel-button">Cancelar</button>
+              <button onClick={editingArtwork ? handleEditArtwork : handleCreateArtwork}>
+                {editingArtwork ? 'Salvar' : 'Criar'}
+              </button>
+              <button onClick={() => {
+                setShowArtworkModal(false);
+                setEditingArtwork(null);
+                setNewArtwork({ title: '', description: '', image_url: '', location: '', hour: '', price: '' });
+              }} className="cancel-button">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deletingArtwork && (
+        <div className="modal-overlay">
+          <div className="modal delete-confirmation">
+            <h3>Confirmar Exclusão</h3>
+            <p>Tem certeza que deseja excluir a obra "{deletingArtwork.title}"?</p>
+            <p>Esta ação não pode ser desfeita.</p>
+            <div className="modal-actions">
+              <button onClick={handleDeleteArtwork} className="delete-button">Confirmar Exclusão</button>
+              <button onClick={() => setDeletingArtwork(null)} className="cancel-button">Cancelar</button>
             </div>
           </div>
         </div>
@@ -205,11 +350,51 @@ function Dashboard() {
             {art.location && <p><strong>Local:</strong> {art.location}</p>}
             {art.hour && <p><strong>Horário:</strong> {art.hour}</p>}
             {art.price && <p><strong>Preço:</strong> R$ {art.price}</p>}
-            {(userRole !== 'Visitante') && (<span className={`status ${art.status}`}>{art.status}</span>)}
+            {(userRole !== 'Visitante') && (
+              <>
+                <span className={`status ${art.status}`}>{art.status}</span>
+                {art.status !== 'recusado' && (
+                  <div className="likes-count">
+                    <span className="likes-icon">❤️</span>
+                    <span className="likes-number">{art.likes || 0} curtidas</span>
+                  </div>
+                )}
+              </>
+            )}
+            {userRole === 'Visitante' && (
+              <div className="artwork-actions" style={{ marginTop: '25px' }}>
+                <button 
+                  onClick={() => handleLikeArtwork(art.id)} 
+                  className={`like-button ${likedArtworks.has(art.id) ? 'liked' : ''}`}
+                  disabled={likedArtworks.has(art.id)}
+                >
+                  {likedArtworks.has(art.id) ? '❤️ Curtido' : '❤️ Curtir'} ({art.likes || 0})
+                </button>
+              </div>
+            )}
             {(userRole === 'Curador') && art.status === 'pendente' && (
               <div className="artwork-actions" style={{ marginTop: '25px', display: 'flex', gap: '8px' }}>
                 <button onClick={() => handleApprove(art.id)} className="approve-button">Aprovar ✔</button>
                 <button onClick={() => handleReprove(art.id)} className="reprove-button">Reprovar ✖</button>
+              </div>
+            )}
+            {userRole === 'Artista' && art.artist_id === userId && (
+              <div className="artwork-actions" style={{ marginTop: '25px', display: 'flex', gap: '8px' }}>
+                <button 
+                  onClick={() => {
+                    setEditingArtwork(art);
+                    setShowArtworkModal(true);
+                  }} 
+                  className="edit-button"
+                >
+                  Editar ✏️
+                </button>
+                <button 
+                  onClick={() => setDeletingArtwork(art)} 
+                  className="delete-button"
+                >
+                  Excluir 🗑️
+                </button>
               </div>
             )}
           </div>
